@@ -12,5 +12,6 @@ namespace Service.Services
     public interface IAccountService
     {
         Task<ServiceResponse<UserDto>> CreateNewUser(RegisterDto registerDto);
+        Task<ServiceResponse<UserDto>> Login(LoginDto loginDto);
     }
 }
