@@ -36,5 +36,22 @@ namespace Api.Controllers
             }
             return new CreatedResult("Registered User", response.Data);
         }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<UserDto>> Login([FromBody] LoginDto loginDto)
+        {
+            if(string.IsNullOrEmpty(loginDto.Username) 
+                || string.IsNullOrEmpty(loginDto.Password))
+            {
+                return BadRequest("Missing login information.");
+            }
+            var response = await _accountService.Login(loginDto);
+            if(!response.Success)
+            {
+                return BadRequest(response.Message);
+            }
+
+            return response.Data;
+        }
     }
 }

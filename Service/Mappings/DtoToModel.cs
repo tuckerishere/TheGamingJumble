@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Data.Entity;
 using Service.Account.DTOs;
+using Service.DTOs.Account;
 
 namespace Service.Mappings
 {

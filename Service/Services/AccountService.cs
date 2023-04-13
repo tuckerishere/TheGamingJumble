@@ -60,6 +60,31 @@ namespace Service.Services
             return response;
         }
 
+        public async Task<ServiceResponse<UserDto>> Login(LoginDto loginDto)
+        {
+            ServiceResponse<UserDto> response = new ServiceResponse<UserDto>();
+            var user = await _userManager.FindByNameAsync(loginDto.Username.ToLower());
+            if (user != null)
+            {
+                var password = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+                if (password)
+                {
+                    var userReturned = _mapper.Map<AppUser, UserDto>(user);
+                    response = SetServiceResponse(userReturned, true, "Successful Login.");
+                }
+                else
+                {
+                    response = SetServiceResponse(new UserDto(), false, "Invalid Password.");
+                }
+            }
+            else
+            {
+                response = SetServiceResponse(new UserDto(), false, "Invalid Username.");
+            }
+
+            return response;
+        }
+
         private async Task<bool> UserExists(string userName)
         {
             return await _userManager.FindByNameAsync(userName.ToLower()) != null ? true : false;

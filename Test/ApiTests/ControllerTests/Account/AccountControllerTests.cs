@@ -1,4 +1,5 @@
 using Api.Controllers;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Service.Account.DTOs;
@@ -44,8 +45,9 @@ namespace Test.ApiTests.ControllerTests.Account
             var initialResult = await controller.RegisterUser(registerDto);
 
             //Assert
-            var result = (initialResult.Result as CreatedResult).Value as ServiceResponse<UserDto>;
-            Assert.Equal(registerDto.UserName, result.Data.Username);
+            var result = Assert.IsType<CreatedResult>(initialResult.Result);
+            var user = Assert.IsType<UserDto>(result.Value);
+            Assert.Equal(registerDto.UserName, user.Username);
         }
 
         [Fact]
@@ -214,6 +216,101 @@ namespace Test.ApiTests.ControllerTests.Account
             //Assert
             var badRequestResult = (initialResult.Result as BadRequestObjectResult).Value;
             Assert.Equal("Missing user information", badRequestResult);
+        }
+
+        [Fact]
+        public async Task Login_Success()
+        {
+            //Arrange
+            var loginDto = new LoginDto()
+            {
+                Username = "test",
+                Password = "Test123!"
+            };
+            var serviceResponse = new ServiceResponse<UserDto>();
+            serviceResponse.Data = new UserDto()
+            {
+                Username = "test"
+            };
+            _accountService.Setup(x => x.Login(loginDto)).ReturnsAsync(serviceResponse);
+
+            var controller = new AccountController(_accountService.Object);
+
+            //Act
+            var initialResult = await controller.Login(loginDto);
+
+            var result = Assert.IsType<ActionResult<UserDto>>(initialResult);
+            var user = Assert.IsType<UserDto>(result.Value);
+
+            //Assert
+            Assert.Equal(serviceResponse.Data.Username, user.Username);
+        }
+
+        [Fact]
+        public async void Login_MissingUsername()
+        {
+            //Arrange
+            var loginDto = new LoginDto()
+            {
+                Username = "",
+                Password = "MyTest123!"
+            };
+
+            var controller = new AccountController(_accountService.Object);
+
+            //Act
+            var intialResponse = await controller.Login(loginDto);
+
+            var response = Assert.IsType<BadRequestObjectResult>(intialResponse.Result);
+            Assert.Equal("Missing login information.", response.Value);
+        }
+
+        [Fact]
+        public async void Login_MissingPassword()
+        {
+            //Arrange
+            var loginDto = new LoginDto()
+            {
+                Username = "test",
+                Password = ""
+            };
+
+            var controller = new AccountController(_accountService.Object);
+
+            //Act
+            var intialResponse = await controller.Login(loginDto);
+
+            var response = Assert.IsType<BadRequestObjectResult>(intialResponse.Result);
+            Assert.Equal("Missing login information.", response.Value);
+        }
+
+        [Fact]
+        public async void Login_IncorrectPassword()
+        {
+            //Arrange
+            var loginDto = new LoginDto
+            {
+                Username = "test",
+                Password = "Test123!"
+            };
+
+            var serviceResponse = new ServiceResponse<UserDto>()
+            {
+                Data = new UserDto(),
+                Success = false,
+                Message = "Incorrect Password"
+            };
+
+            _accountService.Setup(x => x.Login(loginDto)).ReturnsAsync(serviceResponse);
+            var controller = new AccountController(_accountService.Object);
+            
+            //Act
+            var initialResponse = await controller.Login(loginDto);
+
+            var response = Assert.IsType<BadRequestObjectResult>(initialResponse.Result);
+
+            Assert.Equal(serviceResponse.Message, response.Value);
+            Assert.Equal(400, response.StatusCode);
         }
     }
 }
